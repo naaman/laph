@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# usage: bin/librato-chart in.html out.png
+
+BIN_DIR=$(cd $(dirname $0); pwd)
+HTML_FILE=$1
+PNG_FILE=$2
+
+phantomjs $BIN_DIR/rasterize.js $HTML_FILE $PNG_FILE

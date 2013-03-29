@@ -1,0 +1,12 @@
+<html>
+<head>
+<script type="text/javascript"
+  src="https://sdk.librato.com/librato-sdk-v0.2.0-min.js"
+  data-librato_email="{{libratoUser}}"
+  data-librato_token="{{libratoToken}}">
+</script>
+</head>
+<body>
+<div class="librato-metrics" data-instrument_id="{{chartId}}"></div>
+</body>
+</html>
