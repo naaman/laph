@@ -12,7 +12,7 @@ class LibratoChartController extends Controller {
 
   implicit def statusCode2Int(s: HttpResponseStatus) = s.getCode
 
-  get("/:chartId") { request =>
+  get("/:chartId.png") { request =>
     request.request match {
       case LibratoAuthRequest(u, p, r) =>
         (for {
