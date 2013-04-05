@@ -7,6 +7,6 @@
 </script>
 </head>
 <body>
-<div class="librato-metrics" data-instrument_id="{{chartId}}"></div>
+<div class="librato-metrics" data-instrument_id="{{chartId}}" data-duration="300"></div>
 </body>
 </html>
