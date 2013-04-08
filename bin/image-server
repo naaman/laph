@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+BIN_DIR=$(cd $(dirname $0); pwd)
+phantomjs $BIN_DIR/image-server.js
