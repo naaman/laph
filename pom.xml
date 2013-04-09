@@ -4,9 +4,9 @@
     <artifactId>laph</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>${project.artifactId}</name>
-    <description>My Web App</description>
+    <description>laph</description>
     <inceptionYear>2013</inceptionYear>
-    <url>http://github.com/path/to/project</url>
+    <url>http://github.com/naaman/laph</url>
 
     <properties>
         <maven.compiler.source>1.6</maven.compiler.source>
@@ -133,6 +133,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.2-beta-5</version>
                 <configuration>
+                    <finalName>laph</finalName>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
