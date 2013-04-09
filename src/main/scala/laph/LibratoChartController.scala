@@ -16,9 +16,7 @@ class LibratoChartController extends Controller {
         (for {
           chartId <- request.routeParams.get("chartId").map(_.toLong)
         } yield {
-          Librato(u, p).instrument(chartId).flatMap { instrument =>
-            LibratoChart.createChart(LibratoChartView(u, p, chartId, instrument.name))
-          }.map { chart =>
+          LibratoChart.createChart(LibratoChartRequest(u, p, chartId)).map { chart =>
             render.body(chart).header("Content-Type", "image/png")
           }
         }).getOrElse(render.status(BAD_REQUEST).toFuture)

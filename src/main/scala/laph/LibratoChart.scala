@@ -11,21 +11,45 @@ import laph.ChannelBufferUtil._
 import com.twitter.conversions.time._
 import org.jboss.netty.buffer.ChannelBuffers
 
+case class LibratoChartRequest(
+  username: String,
+  password: String,
+  id: Long,
+  name: Option[String] = None
+) {
+  def toView = LibratoChartView(username, password, id, name.getOrElse(""))
+}
+
 object LibratoChart {
 
-  def createChart = writeChartHTML _ andThen generateImage
-
-  def writeChartHTML(libratoView: LibratoChartView) = {
-    val tmpFile = File.createTempFile("chart", ".html")
-    val writer = new FileWriter(tmpFile)
-    writer.write(libratoView.render)
-    writer.close()
-    tmpFile
+  def createChart = {
+    chartInfo              _ andThen
+    createLibratoChartView _ andThen
+    writeChartHTML         _ andThen
+    generateImage
   }
 
-  def generateImage(file: File): Future[Array[Byte]] = {
-    ChartServer.chart(file).map(asString _ andThen Base64.decode)
-  }
+  def chartInfo(chartRequest: LibratoChartRequest) =
+    Librato(chartRequest.username, chartRequest.password)
+      .instrument(chartRequest.id)
+      .map(inst => chartRequest.copy(name = Some(inst.name)))
+
+  def createLibratoChartView(chartRequest: Future[LibratoChartRequest]) =
+    chartRequest.map(_.toView)
+
+  def writeChartHTML(libratoView: Future[LibratoChartView]) =
+    libratoView.map { template =>
+      val tmpFile = File.createTempFile("chart", ".html")
+      val writer = new FileWriter(tmpFile)
+      writer.write(template.render)
+      writer.close()
+      tmpFile
+    }
+
+  def generateImage(fileFuture: Future[File]): Future[Array[Byte]] =
+    fileFuture.flatMap { file =>
+      ChartServer.chart(file).map(asString _ andThen Base64.decode)
+    }
 
 }
 
