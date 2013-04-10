@@ -13,7 +13,7 @@ class LibratoAuth extends SimpleFilter[http.Request, http.Response] {
 
   val LibratoUser      = sys.env.get("LIBRATO_USER")
   val LibratoPassword  = sys.env.get("LIBRATO_PASSWORD")
-  val RequireAuth      = (for (u <- LibratoUser; p <- LibratoPassword) yield false).getOrElse(true)
+  val RequireAuth      = (for (u ← LibratoUser; p ← LibratoPassword) yield false).getOrElse(true)
 
   val BasicAuthPattern = Pattern.compile("\\s*basic\\s*", Pattern.CASE_INSENSITIVE)
 
@@ -24,8 +24,8 @@ class LibratoAuth extends SimpleFilter[http.Request, http.Response] {
 
   def parseAuth(auth: String) = {
     new String(decode(stripBasic(auth))).split(":", 2).toList match {
-      case username :: password :: Nil => Some((username, password))
-      case _                           => None
+      case username :: password :: Nil ⇒ Some((username, password))
+      case _                           ⇒ None
     }
   }
 
@@ -33,8 +33,8 @@ class LibratoAuth extends SimpleFilter[http.Request, http.Response] {
             service: Service[http.Request, http.Response]): Future[http.Response] = {
     if (RequireAuth) {
       (for {
-        auth                 <- request.authorization
-        (username, password) <- parseAuth(auth)
+        auth                 ← request.authorization
+        (username, password) ← parseAuth(auth)
       } yield {
         val authReq = LibratoAuthRequest(username, password, request)
         service(authReq)

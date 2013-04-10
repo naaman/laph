@@ -4,11 +4,11 @@ import org.jboss.netty.handler.codec.http._
 import org.jboss.netty.handler.codec.http.HttpHeaders.Names._
 import com.twitter.finagle.Service
 import com.twitter.finagle.builder.ClientBuilder
-import com.twitter.finagle.http.{Response, RequestBuilder, Http}
+import com.twitter.finagle.http.{RequestBuilder, Http}
 import com.twitter.conversions.time._
-import com.twitter.util.Base64StringEncoder.{ encode => base64encode }
+import com.twitter.util.Base64StringEncoder.{ encode ⇒ base64encode }
 import com.twitter.util.{Future, Duration}
-import com.codahale.jerkson.{ Json => Jerkson }
+import com.codahale.jerkson.{ Json ⇒ Jerkson }
 
 case class LibratoJson()
 case class LibratoMetrics(query: Any, metrics: List[LibratoMetric])
@@ -18,7 +18,7 @@ case class LibratoInstrument(id: Long, name: String)
 case class Librato(username: String, password: String) {
   import laph.ChannelBufferUtil._
   import LibratoClient.request
-  private val auth = username -> password
+  private val auth = username → password
 
   def metrics: Future[LibratoMetrics] = request(auth, "/v1/metrics").map(asJson[LibratoMetrics])
 

@@ -2,7 +2,6 @@ package laph
 
 import com.twitter.finatra.Controller
 import org.jboss.netty.handler.codec.http.HttpResponseStatus
-import laph.Templates.LibratoChartView
 
 class LibratoChartController extends Controller {
 
@@ -10,17 +9,17 @@ class LibratoChartController extends Controller {
 
   implicit def statusCode2Int(s: HttpResponseStatus) = s.getCode
 
-  get("/chart/:chartId.png") { request =>
+  get("/chart/:chartId.png") { request ⇒
     request.request match {
-      case LibratoAuthRequest(u, p, r) =>
+      case LibratoAuthRequest(u, p, r) ⇒
         (for {
-          chartId <- request.routeParams.get("chartId").map(_.toLong)
+          chartId ← request.routeParams.get("chartId").map(_.toLong)
         } yield {
-          LibratoChart.createChart(LibratoChartRequest(u, p, chartId)).map { chart =>
+          LibratoChart.createChart(LibratoChartRequest(u, p, chartId)).map { chart ⇒
             render.body(chart).header("Content-Type", "image/png")
           }
         }).getOrElse(render.status(BAD_REQUEST).toFuture)
-      case _ => render.status(UNAUTHORIZED).toFuture
+      case _ ⇒ render.status(UNAUTHORIZED).toFuture
     }
   }
 
