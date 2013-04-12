@@ -24,7 +24,7 @@ class LibratoAuth extends SimpleFilter[http.Request, http.Response] {
 
   def parseAuth(auth: String) = {
     new String(decode(stripBasic(auth))).split(":", 2).toList match {
-      case username :: password :: Nil ⇒ Some((username, password))
+      case username :: password :: Nil ⇒ Some(username → password)
       case _                           ⇒ None
     }
   }
