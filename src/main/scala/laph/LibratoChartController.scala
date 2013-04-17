@@ -37,7 +37,7 @@ class LibratoChartController extends Controller {
                           .map(cjr ⇒ LibratoChartRequest(u, p, cjr.chartId, cjr.chartName))
                         if chartReq.id.isDefined || chartReq.name.isDefined
         } yield {
-          LibratoChart.createChartInS3(chartReq).map(render.body(_))
+          LibratoChart.createChartInS3(chartReq).map(render.json(_))
         }).getOrElse(BadRequest)
       case _ ⇒ Unauthorized
     }
