@@ -20,7 +20,7 @@ class LibratoChartController extends Controller {
         (for {
           chartId ← request.routeParams.get("chartId").map(_.toLong)
         } yield {
-          LibratoChart.createChart(LibratoChartRequest(u, p, chartId)).map { chart ⇒
+          LibratoChart.createChart(LibratoChartRequest(u, p, Some(chartId))).map { chart ⇒
             render.body(chart).header("Content-Type", "image/png")
           }
         }).getOrElse(BadRequest)
@@ -32,16 +32,18 @@ class LibratoChartController extends Controller {
     request.request match {
       case LibratoAuthRequest(u, p, r) ⇒
         (for {
-          contentType ← request.contentType
-          json        ← Option(JsonUtil.parse[ChartCreateRequest](request.contentString)) if contentType == MediaType.Json
+          contentType ← request.contentType if contentType == MediaType.Json
+          chartReq    ← Option(JsonUtil.parse[ChartJsonRequest](request.contentString))
+                          .map(cjr ⇒ LibratoChartRequest(u, p, cjr.chartId, cjr.chartName))
+                        if chartReq.id.isDefined || chartReq.name.isDefined
         } yield {
-          LibratoChart.createChartInS3(
-            LibratoChartRequest(u, p, json.chartId)
-          ).map(render.body(_))
+          LibratoChart.createChartInS3(chartReq).map(render.body(_))
         }).getOrElse(BadRequest)
       case _ ⇒ Unauthorized
     }
   }
+
 }
 
 case class ChartCreateRequest(chartId: Long)
+case class ChartJsonRequest(chartId: Option[Long], chartName: Option[String])
