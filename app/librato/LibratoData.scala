@@ -1,10 +1,11 @@
-package laph
+package librato
 
 import akka.actor.Actor
 import akka.actor.Props
 import akka.actor.ActorSystem
 import akka.pattern.ask
-import akka.util.duration._
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import java.util.concurrent.{TimeUnit, ConcurrentHashMap}
 import akka.util.Timeout
 
@@ -18,23 +19,21 @@ object LibratoData {
   }
 
   implicit val timeout = Timeout(10, TimeUnit.MILLISECONDS)
-  def idFromName(name: String) = ask(dataActorRef, FindDataFromName(name)).mapTo[Option[Long]]
-  def nameFromId(id: Long)     = ask(dataActorRef, FindDataFromId(id)).mapTo[Option[String]]
+  def idFromName(name: String) = ask(dataActorRef, FindDataFromName(name)).mapTo[Option[Int]]
+  def nameFromId(id: Int)      = ask(dataActorRef, FindDataFromId(id)).mapTo[Option[String]]
 }
 
 class LibratoDataActor extends Actor {
-  val data = new ConcurrentHashMap[Long, String]
-  private def findData(ƒ: ((Long, String)) => Boolean) = {
+  val data = new ConcurrentHashMap[Int, String]
+  private def findData(ƒ: ((Int, String)) => Boolean) = {
     import scala.collection.JavaConversions._
     data.find(ƒ(_))
   }
 
-  protected def receive = {
+  def receive = {
     case LibratoAccount(u, p) ⇒
       Librato(u, p).allInstruments.map { instruments ⇒
         instruments.foreach(inst ⇒ data.put(inst.id, inst.name))
-      }.map { _ ⇒
-        println("Librato Data" + data)
       }
     case FindDataFromId(id) ⇒
       sender ! findData(_._1.equals(id)).map(_._2)
@@ -44,5 +43,5 @@ class LibratoDataActor extends Actor {
 }
 
 case class LibratoAccount(username: String, password: String)
-case class FindDataFromId(id: Long)
+case class FindDataFromId(id: Int)
 case class FindDataFromName(name: String)
