@@ -6,8 +6,4 @@ BIN_DIR=$(cd $(dirname $0); pwd)
 nohup $BIN_DIR/image-server &
 
 # main web proc
-java -Denv=production \
-  -Dstats_enabled=false \
-  -Dport=$PORT \
-  -cp target/laph-jar-with-dependencies.jar \
-  laph.App
+target/start -Dhttp.port=$PORT $JAVA_OPTS
