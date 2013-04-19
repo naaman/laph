@@ -15,7 +15,7 @@ object LibratoChartController extends Controller {
         chartReq ← LibratoChartRequest.create(cjr.chartId.map(_.toInt), cjr.chartName)
       } yield {
         Async {
-          LibratoChart.createChartInS3(chartReq).map(Ok(_))
+          LibratoChart.createChartInS3(chartReq).map(s => Ok(Json.toJson(s)))
         }
       }).getOrElse(NotFound)
     }.recoverTotal(e => BadRequest(JsError.toFlatJson(e)))
