@@ -24,8 +24,6 @@ case class Librato(username: String, password: String) {
   implicit val libratoInstrument = Json.reads[LibratoInstrument]
   implicit val libratoInstrumentQuery = Json.reads[LibratoInstrumentQuery]
 
-
-
   def metrics: Future[LibratoMetrics] = request(auth, "/v1/metrics").map(_.json.as[LibratoMetrics])
 
   def instrument(chartId: Long): Future[LibratoInstrument] =
@@ -51,12 +49,11 @@ object LibratoClient {
   val libratoApiHost: String = "metrics-api.librato.com"
   val libratoApiUrl: String  = s"https://${libratoApiHost}"
 
-  def request(auth: (String, String), path: String, method: HttpMethod = HttpMethod.GET) = {
-    val (u, p) = auth
-    WS.url(s"${libratoApiUrl}/${path}")
-      .withHeaders(AUTHORIZATION -> s"Basic ${Base64.encode(s"$u:$p".getBytes)}")
-      .get
-  }
+  private def authHeader(auth: (String, String))  = AUTHORIZATION -> s"Basic ${encodedAuth(auth)}"
+  private def encodedAuth(auth: (String, String)) = Base64.encode(s"$auth._1:$auth._2".getBytes)
+
+  def request(auth: (String, String), path: String, method: HttpMethod = HttpMethod.GET) =
+    WS.url(s"${libratoApiUrl}/${path}").withHeaders(authHeader(auth)).get
 
   val batch = 100
   def slices(total: Int): Seq[(Int, Int)] = {
