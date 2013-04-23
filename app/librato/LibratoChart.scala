@@ -17,6 +17,7 @@ case class LibratoChartRequest(
   password:   String,
   id:         Int,
   name:       String,
+  duration:   Long,
   uploadToS3: Boolean = true
 )
 
@@ -25,15 +26,18 @@ case object LibratoChartRequest {
   val password = LibratoChart.cfg("LIBRATO_PASSWORD")
   def create(id:         Option[Int] = None,
              name:       Option[String] = None,
+             duration:   Option[Long],
              uploadToS3: Boolean = true) = {
-    def result[T](f: ⇒ Future[Option[T]]) = Await.result(f, 100.milliseconds)
+    def result[T](f: ⇒ Future[Option[T]]) = Await.result(f, 10.milliseconds)
     ( for (i <- id; n <- result(LibratoData.nameFromId(i)))
       yield i -> n
     ).orElse (
       for (n <- name; i <- result(LibratoData.idFromName(n)))
       yield i -> n
     ) map {
-      case (i, n) ⇒ LibratoChartRequest(username, password, i, n, uploadToS3)
+      case (i, n) ⇒
+        LibratoChartRequest(
+          username, password, i, n, duration.getOrElse(30.minutes.toSeconds), uploadToS3)
     }
   }
 

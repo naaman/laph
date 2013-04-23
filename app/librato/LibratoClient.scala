@@ -50,7 +50,7 @@ object LibratoClient {
   val libratoApiUrl: String  = s"https://${libratoApiHost}"
 
   private def authHeader(auth: (String, String))  = AUTHORIZATION -> s"Basic ${encodedAuth(auth)}"
-  private def encodedAuth(auth: (String, String)) = Base64.encode(s"$auth._1:$auth._2".getBytes)
+  private def encodedAuth(auth: (String, String)) = Base64.encode(s"${auth._1}:${auth._2}".getBytes)
 
   def request(auth: (String, String), path: String, method: HttpMethod = HttpMethod.GET) =
     WS.url(s"${libratoApiUrl}/${path}").withHeaders(authHeader(auth)).get
