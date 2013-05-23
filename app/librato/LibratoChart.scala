@@ -11,6 +11,7 @@ import scala.concurrent.{Await, Future}
 import com.ning.http.util.Base64
 import fly.play.s3.{PUBLIC_READ, BucketFile, S3}
 import fly.play.aws.auth.AwsCredentials
+import util.{PlayConfigModule, ConfigModule}
 
 case class LibratoChartRequest(
   username:   String,
@@ -19,74 +20,103 @@ case class LibratoChartRequest(
   name:       String,
   duration:   Long,
   uploadToS3: Boolean = true
-)
-
-case object LibratoChartRequest {
-  val username = LibratoChart.cfg("LIBRATO_USER")
-  val password = LibratoChart.cfg("LIBRATO_PASSWORD")
-  def create(id:         Option[Int] = None,
-             name:       Option[String] = None,
-             duration:   Option[Long],
-             uploadToS3: Boolean = true) = {
-    def result[T](f: ⇒ Future[Option[T]]) = Await.result(f, 10.milliseconds)
-    ( for (i <- id; n <- result(LibratoData.nameFromId(i)))
-      yield i -> n
-    ).orElse (
-      for (n <- name; i <- result(LibratoData.idFromName(n)))
-      yield i -> n
-    ) map {
-      case (i, n) ⇒
-        LibratoChartRequest(
-          username, password, i, n, duration.getOrElse(30.minutes.toSeconds), uploadToS3)
-    }
-  }
-
-  def render(cr: LibratoChartRequest) = views.html.libratochart.render(cr)
+) {
+  def render = views.html.libratochart.render(this)
 }
 
-object LibratoChart {
-
-  def cfg(key: String) = {
-    sys.env.get(key).getOrElse(sys.error("%s not configured".format(key)))
+trait LibratoChartRequestFactoryModule {
+  def libratoChartRequest: LibratoChartRequestFactory
+  trait LibratoChartRequestFactory {
+    def create(id:         Option[Int] = None,
+               name:       Option[String] = None,
+               duration:   Option[Long] = None,
+               uploadToS3: Boolean = true
+               ): Option[LibratoChartRequest]
   }
+}
 
-  val key    = cfg("S3_KEY")
-  val secret = cfg("S3_SECRET")
-  val bucket = cfg("S3_BUCKET")
-  val s3     = S3(bucket)(AwsCredentials(key, secret))
+trait DefaultLibratoChartRequestFactoryModule extends LibratoChartRequestFactoryModule {
+  this: ConfigModule =>
 
-  def createChart = {
-    writeChartHTML         _ andThen
-    generateImage
-  }
+  def libratoChartRequest = DefaultLibratoChartRequestFactory
 
-  def createChartInS3 = createChart andThen uploadToS3
+  object DefaultLibratoChartRequestFactory extends LibratoChartRequestFactory {
 
-  def writeChartHTML(template: LibratoChartRequest) = {
-    val tmpFile = File.createTempFile("chart", ".html")
-    val writer = new FileWriter(tmpFile)
-    writer.write(LibratoChartRequest.render(template).body)
-    writer.close()
-    tmpFile
-  }
+    lazy val username = config.get("librato.user")
+    lazy val password = config.get("librato.password")
 
-  def generateImage(file: File): Future[Array[Byte]] = {
-    ChartServer.chart(file)
-      .map(r => Base64.decode(r.body))
-  }
-
-  def uploadToS3(dataFuture: Future[Array[Byte]]): Future[String] =
-    dataFuture.flatMap { data ⇒
-      new String(data)
-      val objName = UUID.randomUUID().toString + "librato-chart.png"
-      s3.add(BucketFile(objName, "image/png", data, Some(PUBLIC_READ)))
-        .map {
-        case Left(err) =>
-          "Unable to create image"
-        case Right(res) =>
-          "https://" + bucket + ".s3.amazonaws.com/" + objName.toString
-        }
+    def create(id:         Option[Int] = None,
+               name:       Option[String] = None,
+               duration:   Option[Long] = None,
+               uploadToS3: Boolean = true) = {
+      def result[T](f: ⇒ Future[Option[T]]) = Await.result(f, 10.milliseconds)
+      (
+        for (i <- id; n <- result(LibratoData.nameFromId(i)))
+        yield i -> n
+      ).orElse (
+        for (n <- name; i <- result(LibratoData.idFromName(n)))
+        yield i -> n
+      ) map {
+        case (i, n) =>
+          LibratoChartRequest(
+            username, password, i, n, duration.getOrElse(30.minutes.toSeconds), uploadToS3
+          )
+      }
     }
+  }
+}
+
+trait LibratoChartModule {
+  def libratoChart: LibratoChart
+  trait LibratoChart {
+    def createChart(request: LibratoChartRequest): Future[Array[Byte]]
+    def createChartInS3(request: LibratoChartRequest): Future[String]
+  }
+}
+
+trait DefaultLibratoChartModule extends LibratoChartModule {
+  this: ConfigModule =>
+  val libratoChart = DefaultLibratoChart
+
+  object DefaultLibratoChart extends LibratoChart {
+    lazy val key    = config.get("aws.accessKeyId")
+    lazy val secret = config.get("aws.secretKey")
+    lazy val bucket = config.get("aws.bucket")
+    lazy val s3     = S3(bucket)(AwsCredentials(key, secret))
+
+
+    def createChart(request: LibratoChartRequest)     = _createChart(request)
+    def createChartInS3(request: LibratoChartRequest) = _createChartInS3(request)
+
+    def _createChart     = writeChartHTML _ andThen generateImage
+    def _createChartInS3 = _createChart andThen uploadToS3
+
+    private def writeChartHTML(template: LibratoChartRequest) = {
+      val tmpFile = File.createTempFile("chart", ".html")
+      val writer = new FileWriter(tmpFile)
+      writer.write(template.render.body)
+      writer.close()
+      tmpFile
+    }
+
+    private def generateImage(file: File): Future[Array[Byte]] = {
+      ChartServer.chart(file).map(r => Base64.decode(r.body))
+    }
+
+    private def uploadToS3(dataFuture: Future[Array[Byte]]): Future[String] = {
+      dataFuture.flatMap { data ⇒
+        new String(data)
+        val objName = UUID.randomUUID().toString + "librato-chart.png"
+        s3.add(BucketFile(objName, "image/png", data, Some(PUBLIC_READ)))
+          .map {
+          case Left(err) =>
+            "Unable to create image"
+          case Right(res) =>
+            "https://" + bucket + ".s3.amazonaws.com/" + objName.toString
+        }
+      }
+    }
+  }
 }
 
 object ChartServer {

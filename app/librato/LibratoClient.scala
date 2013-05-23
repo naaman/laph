@@ -45,7 +45,7 @@ case class Librato(username: String, password: String) {
       }.map(_.flatten)
 }
 
-object LibratoClient {
+trait LibratoClient {
   val libratoApiHost: String = "metrics-api.librato.com"
   val libratoApiUrl: String  = s"https://${libratoApiHost}"
 
@@ -62,3 +62,5 @@ object LibratoClient {
     else batches :+ ((total / batch) * batch -> total % batch)
   }
 }
+
+object LibratoClient extends LibratoClient
