@@ -32,8 +32,7 @@ case class Librato(username: String, password: String) {
 
   def allInstruments =
     request(auth, "/v1/instruments?length=1")
-      .map(_.json.as[LibratoInstrumentQuery])
-      .map(_.query.total)
+      .map(_.json.as[LibratoInstrumentQuery].query.total)
       .map(LibratoClient.slices)
       .flatMap { slices ⇒
         Future.sequence(
